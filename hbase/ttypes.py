@@ -7,11 +7,12 @@
 from thrift.Thrift import *
 
 from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TBinaryProtocol, TProtocol
 try:
   from thrift.protocol import fastbinary
 except:
   fastbinary = None
+
 
 
 class TCell:
@@ -20,7 +21,7 @@ class TCell:
   stored with together as a result for get and getRow methods. This promotes
   the timestamp of a cell to a first-class value, making it easy to take
   note of temporal data. Cell is used all the way from HStore up to HTable.
-  
+
   Attributes:
    - value
    - timestamp
@@ -75,6 +76,9 @@ class TCell:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -92,7 +96,7 @@ class ColumnDescriptor:
   An HColumnDescriptor contains information about a column family
   such as the number of versions, compression settings, etc. It is
   used as input when creating a table or adding a column.
-  
+
   Attributes:
    - name
    - maxVersions
@@ -231,6 +235,9 @@ class ColumnDescriptor:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -246,7 +253,7 @@ class ColumnDescriptor:
 class TRegionInfo:
   """
   A TRegionInfo contains information about an HTable region.
-  
+
   Attributes:
    - startKey
    - endKey
@@ -337,6 +344,9 @@ class TRegionInfo:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -352,7 +362,7 @@ class TRegionInfo:
 class Mutation:
   """
   A Mutation object is used to either update or delete a column-value.
-  
+
   Attributes:
    - isDelete
    - column
@@ -419,6 +429,9 @@ class Mutation:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -434,7 +447,7 @@ class Mutation:
 class BatchMutation:
   """
   A BatchMutation object is used to apply a number of Mutations to a single row.
-  
+
   Attributes:
    - row
    - mutations
@@ -498,6 +511,9 @@ class BatchMutation:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -513,7 +529,7 @@ class BatchMutation:
 class TRowResult:
   """
   Holds row name and then a map of columns to cells.
-  
+
   Attributes:
    - row
    - columns
@@ -579,6 +595,9 @@ class TRowResult:
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -596,7 +615,7 @@ class IOError(Exception):
   An IOError exception signals that an error occurred communicating
   to the Hbase master or an Hbase region server.  Also used to return
   more general Hbase error conditions.
-  
+
   Attributes:
    - message
   """
@@ -639,6 +658,9 @@ class IOError(Exception):
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -658,7 +680,7 @@ class IllegalArgument(Exception):
   """
   An IllegalArgument exception indicates an illegal or invalid
   argument was passed into a procedure.
-  
+
   Attributes:
    - message
   """
@@ -701,6 +723,9 @@ class IllegalArgument(Exception):
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -720,7 +745,7 @@ class AlreadyExists(Exception):
   """
   An AlreadyExists exceptions signals that a table with the specified
   name already exists
-  
+
   Attributes:
    - message
   """
@@ -763,6 +788,9 @@ class AlreadyExists(Exception):
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
+    def validate(self):
+      return
+
 
   def __str__(self):
     return repr(self)
@@ -777,4 +805,3 @@ class AlreadyExists(Exception):
 
   def __ne__(self, other):
     return not (self == other)
-
