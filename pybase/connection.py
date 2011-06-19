@@ -13,19 +13,12 @@ from thrift import Thrift
 from thrift.transport import TTransport
 from thrift.transport import TSocket
 from thrift.protocol import TBinaryProtocol
- 
-try:
-    from hbase import Hbase
-    #from hbase.ttypes import *
-except:
-    from cassandra import Cassandra
-    from cassandra.ttypes import AuthenticationRequest
 
+from hbase import Hbase
 
 __all__ = ['connect', 'connect_thread_local', 'NoServerAvailable']
 
-DEFAULT_SERVER = 'localhost:9160' #cassandra
-DEFAULT_SERVER = 'localhost:9090' #hbase
+DEFAULT_SERVER = 'localhost:9090'
 
 class NoServerAvailable(Exception):
     pass
@@ -40,10 +33,7 @@ def create_client_transport(server, framed_transport, timeout, logins, hbase):
     else:
         transport = TTransport.TBufferedTransport(socket)
     protocol = TBinaryProtocol.TBinaryProtocolAccelerated(transport)
-    if hbase:
-        client = Hbase.Client(protocol)
-    else:
-        client = Cassandra.Client(protocol)
+    client = Hbase.Client(protocol)
     transport.open()
 
     if logins is not None:
@@ -55,7 +45,7 @@ def create_client_transport(server, framed_transport, timeout, logins, hbase):
 
 def connect(servers=None, framed_transport=False, timeout=None, logins=None, hbase=True):
     """
-    Constructs a single Cassandra connection. Initially connects to the first
+    Constructs a single HBase connection. Initially connects to the first
     server on the list.
     
     If the connection fails, it will attempt to connect to each server on the
@@ -65,7 +55,7 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None, hba
     Parameters
     ----------
     servers : [server]
-              List of Cassandra servers with format: "hostname:port"
+              List of HBase servers with format: "hostname:port"
 
               Default: ['localhost:9160']
     framed_transport: bool
@@ -81,7 +71,7 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None, hba
 
     Returns
     -------
-    Cassandra client
+    HBase client
     """
 
     if servers is None:
@@ -90,7 +80,7 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None, hba
 
 def connect_thread_local(servers=None, round_robin=True, framed_transport=False, timeout=None, logins=None, hbase=True):
     """
-    Constructs a Cassandra connection for each thread. By default, it attempts
+    Constructs an HBase connection for each thread. By default, it attempts
     to connect in a round_robin (load-balancing) fashion. Turn it off by
     setting round_robin=False
 
@@ -101,7 +91,7 @@ def connect_thread_local(servers=None, round_robin=True, framed_transport=False,
     Parameters
     ----------
     servers : [server]
-              List of Cassandra servers with format: "hostname:port"
+              List of HBase servers with format: "hostname:port"
 
               Default: ['localhost:9160']
     round_robin : bool
@@ -120,7 +110,7 @@ def connect_thread_local(servers=None, round_robin=True, framed_transport=False,
 
     Returns
     -------
-    Cassandra client
+    HBase client
     """
 
     if servers is None:
