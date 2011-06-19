@@ -1,19 +1,22 @@
 pybase
 =======
 
-pybase is a python library for HBase, based on Pycassa (http://github.com/pycassa/pycassa), a python library for Cassandra.
+pybase is a python library for HBase, based on Pycassa
+(http://github.com/pycassa/pycassa), a python library for Cassandra.
+
+This is a fork from the original project at:
+https://github.com/antoniobarbuzzi/pybase
 
 It inherits some pycassa features, therefore:
 
 1. Simplified thrift interface
 2. Thread safe
 
-I do not need it anymore, therefore the development is very, very slow.
-
 Documentation
 -------------
 
-Not very well documented, it was just a private project. Read single_thread_test.py e multiple_thread_test.py to understand how to use it.
+Not very well documented, it was just a private project. Read
+single_thread_test.py or multiple_thread_test.py to understand how to use it.
 
 
 Requirements
@@ -26,7 +29,8 @@ To install thrift's python bindings:
 
     easy_install thrift
 
-pybase comes with the HBase python files for convenience, but you can replace them with your own.
+pybase comes with the HBase python files for convenience, but you can replace
+them with your own.
 
 Installation
 ------------
@@ -36,8 +40,8 @@ Just copy the directory in your program, or in your $PYTHONPATH..
 Connecting
 ----------
 
-connection.py is just a version of the same file of pycassa, with minor modifications. So, you can find even docstrings referring to Cassandra, but do not worry about.
-
+connection.py is just a version of the same file of pycassa, with minor
+modifications.
 
 Basic Usage
 ----------
@@ -76,7 +80,8 @@ Access to all data in the table, using a scanner on it:
     for i in it:
         print i
 
-Note that scanner supports more parameters, see its documentation or the examples.
+Note that scanner supports more parameters, see its documentation or the
+examples.
 
 Print all the Regions for a table:
     
