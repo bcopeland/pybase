@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
     TABNAME = 'pycassahtable'
     KEYS=int(1e2)
-    client = connect_thread_local(['hdnn:9090'])
+    client = connect_thread_local(['localhost:9090'])
     client.getTableNames()
     tab = HTable(client, TABNAME,[ColumnDescriptor(name='foo:'), ColumnDescriptor(name='foo2:')], createIfNotExist=True, overwrite=True)
     print "TABELLA", tab
