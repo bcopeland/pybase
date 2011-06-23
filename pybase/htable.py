@@ -37,18 +37,9 @@ class HTable(object):
         return descr
 
     def __repr__(self):
-        #print "TABLES:", self._local.client.getTableNames()
-        #print "DESCRIPTORS:", self._local.client.getColumnDescriptors(TABLE_NAME)
         return "%s", self._client.getColumnDescriptors(self._tableName)
 
     
-    #def close(self):
-        #self.client.transport.close()
-
-    #def insert(self, row, column, value):
-        #assert(column.find(':') != -1)
-        #self._client.mutateRow(self._tableName, row, [Mutation(column=column, value=value)])
-
     def insert(self, row, mutations):
         """
         Apply a series of mutations (updates/deletes) to a row in a
@@ -77,17 +68,6 @@ class HTable(object):
         """
         mutations = [Mutation(column=k, value=v) for (k,v) in mutations.iteritems()]
         self._client.mutateRowTs(self._tableName, row, mutations, ts)
-
-    #def scanner.old(self, startRow="", columnlist=""):
-        #scanner = self._client.scannerOpen(self._tableName, startRow, columnlist)
-        #def next():
-            #while True:
-                #ret = self._client.scannerGet(scanner)
-                #if not ret:
-                    #break
-                #yield ret
-            #self._client.scannerClose(scanner)
-        #return next()
 
 
     def scannerPrefix(self, startRowPrefix="", columnlist=""):
