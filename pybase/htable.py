@@ -37,17 +37,8 @@ class HTable(object):
         return descr
 
     def __repr__(self):
-        #print "TABLES:", self._local.client.getTableNames()
-        #print "DESCRIPTORS:", self._local.client.getColumnDescriptors(TABLE_NAME)
         return "%s", self._client.getColumnDescriptors(self._tableName)
 
-    
-    #def close(self):
-        #self.client.transport.close()
-
-    #def insert(self, row, column, value):
-        #assert(column.find(':') != -1)
-        #self._client.mutateRow(self._tableName, row, [Mutation(column=column, value=value)])
 
     def insert(self, row, mutations):
         """
@@ -55,21 +46,21 @@ class HTable(object):
         single transaction.  If an exception is thrown, then the
         transaction is aborted.  Default current timestamp is used, and
         all entries will have an identical timestamp.
-        
+
         @param row row key
         @param mutations list of mutation commands, as a dict of column:value
             ex. mutations = {'person:name':'Antonio'}
         """
         mutations = [Mutation(column=k, value=v) for (k,v) in mutations.iteritems()]
         self._client.mutateRow(self._tableName, row, mutations)
-    
+
     def insertTs(self, row, mutations, ts): # untested
         """
         Apply a series of mutations (updates/deletes) to a row in a
         single transaction.  If an exception is thrown, then the
         transaction is aborted. A timestamp value is required, and
         all entries will have an identical timestamp.
-        
+
         @param row row key
         @param mutations list of mutation commands, as a dict of column:value
             ex. mutations = {'person:name':'Antonio'}
@@ -77,17 +68,6 @@ class HTable(object):
         """
         mutations = [Mutation(column=k, value=v) for (k,v) in mutations.iteritems()]
         self._client.mutateRowTs(self._tableName, row, mutations, ts)
-
-    #def scanner.old(self, startRow="", columnlist=""):
-        #scanner = self._client.scannerOpen(self._tableName, startRow, columnlist)
-        #def next():
-            #while True:
-                #ret = self._client.scannerGet(scanner)
-                #if not ret:
-                    #break
-                #yield ret
-            #self._client.scannerClose(scanner)
-        #return next()
 
     def _hrow_to_tuple(self, row):
         """ Given a TRowResult, return the pair (key, {'column': value})
@@ -128,7 +108,7 @@ class HTable(object):
                 columns of the specified column family are returned.  Its also possible
                 to pass a regex in the column qualifier.
         @param timestamp timestamp
-        
+
         @return scanner iterator
         '''
         if stopRow: #untested
