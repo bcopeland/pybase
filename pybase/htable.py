@@ -89,10 +89,31 @@ class HTable(object):
             #self._client.scannerClose(scanner)
         #return next()
 
+    def _hrow_to_tuple(self, row):
+        """ Given a TRowResult, return the pair (key, {'column': value})
+            TODO: we currently discard the timestamp, we could optionally
+            use 'column' => (value, timestamp) for that use case.
+        """
+        key = row.row
+        cdict = {}
+        for colname, cell in row.columns.iteritems():
+            cdict[colname] = cell.value
+        return (key, cdict)
 
-    def scannerPrefix(self, startRowPrefix="", columnlist=""):
-        raise NotImplemented()
-        pass
+    def get_range(self, start='', finish='', columns=None, timestamp=None):
+        """
+        Get a generator over rows in a specified key range.
+        """
+        buffer_size = 1024
+        scanner = self._client.scannerOpenWithStop(self._tableName,
+            start, finish, columns)
+        while True:
+            ret = self._client.scannerGetList(scanner, buffer_size)
+            if not ret:
+                break
+            for item in ret:
+                yield self._hrow_to_tuple(item)
+        self._client.scannerClose(scanner)
 
     def scanner(self, startRow="", stopRow="", columnlist="", timestamp=None):
         '''
