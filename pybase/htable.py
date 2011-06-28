@@ -153,32 +153,3 @@ class HTable(object):
     def getTableRegions(self):
         return self._client.getTableRegions(self._tableName)
 
-
-if __name__ == '__main__':
-    from hashlib import md5
-    import progressbar
-
-    TABNAME = 'pycassahtable'
-    KEYS=1000
-    client = connect_thread_local(['hdnn:9090'])
-    client.getTableNames()
-    tab = HTable(client, TABNAME,[ColumnDescriptor(name='foo:'), ColumnDescriptor(name='foo2:')], overwrite=True) 
-    print "TABELLA", tab
-    
-    h = md5()
-    widgets = ['Insert Values: ', progressbar.Percentage(), ' ', progressbar.Bar('>'), ' ', progressbar.ETA(), ' ', progressbar.FileTransferSpeed()]
-    prog = progressbar.ProgressBar(widgets = widgets, maxval=KEYS).start()
-    for i in range(KEYS):
-        h.update("%d" % i)
-        row=h.digest()
-        data = {"foo:ciao":"%s"%i}
-        tab.insert(row, data)
-        prog.update(i)
-
-    it = tab.scanner('', '')
-    for i in it:
-        print i
-
-    print tab.getTableRegions()
-    client.close()
-
