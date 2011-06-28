@@ -80,6 +80,25 @@ class HTable(object):
             cdict[colname] = cell.value
         return (key, cdict)
 
+    def get(self, key, columns=None):
+        """
+        Fetch all or part of a row with key `key`.
+
+        A list of columns (or regexes) may be supplied to limit
+        the return result to matching columns.  A single column
+        name is of the form ``column_family:name``.  If columns is
+        None (default), all columns are returned.
+
+        The return result is of the form:
+        ``{column_name: column_value}``, or None if no matches.
+        """
+        response = self._client.getRowWithColumns(
+            self._tableName, key, columns)
+        if not response:
+            return None
+        return self._hrow_to_tuple(response[0])[1]
+
+
     def get_range(self, start='', finish='', columns=None, timestamp=None):
         """
         Get a generator over rows in a specified key range.
