@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 from pybase import *
 from hbase.ttypes import *
@@ -27,6 +28,15 @@ if __name__ == '__main__':
 
     start = "%.8x" % (int(KEYS / 2))
     end = "%.8x" % (int(3 * KEYS / 4))
+    column_limit = ["foo:ciao"]
+
+    print "Get single row %s" % start
+    print tab.get(start)
+    print
+
+    print "Get single row %s, columns %s" % (start, column_limit)
+    print tab.get(start, column_limit)
+    print
 
     print "Scan all rows"
     for i in tab.get_range():
@@ -44,7 +54,7 @@ if __name__ == '__main__':
     print
 
     print "Scan starting from %s to %s column='foo:ciao'" % (start, end)
-    for i in tab.get_range(start, end, columns=['foo:ciao']):
+    for i in tab.get_range(start, end, columns=column_limit):
         print i
     print
 
