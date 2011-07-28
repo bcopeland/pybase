@@ -25,7 +25,8 @@ class HTable(object):
                     print "Overwrite not setted"
                     #raise
                 else:
-                    self.dropTable(tableName)
+                    self._client.disableTable(tableName)
+                    self._client.deleteTable(tableName)
                     self._client.createTable(tableName, columnFamiliesList)
 
     def __str__(self):
