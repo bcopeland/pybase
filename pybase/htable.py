@@ -28,10 +28,6 @@ class HTable(object):
                     self.dropTable(tableName)
                     self._client.createTable(tableName, columnFamiliesList)
 
-    def dropTable(self, tabName):
-        self._client.disableTable(self._tableName)
-        self._client.deleteTable(self._tableName)
-
     def __str__(self):
         descr = "%s (" % self._tableName + ", ".join(["%s" % cf.name for cf in self._columnFamiliesList]) + ")"
         return descr
@@ -58,21 +54,6 @@ class HTable(object):
             for (k,v) in mutations.iteritems()]
 
         self._client.mutateRow(self._tableName, row, mutations)
-
-    def insertTs(self, row, mutations, ts): # untested
-        """
-        Apply a series of mutations (updates/deletes) to a row in a
-        single transaction.  If an exception is thrown, then the
-        transaction is aborted. A timestamp value is required, and
-        all entries will have an identical timestamp.
-
-        @param row row key
-        @param mutations list of mutation commands, as a dict of column:value
-            ex. mutations = {'person:name':'Antonio'}
-        @param ts timestamp
-        """
-        mutations = [Mutation(column=k, value=v) for (k,v) in mutations.iteritems()]
-        self._client.mutateRowTs(self._tableName, row, mutations, ts)
 
     def _hrow_to_tuple(self, row):
         """ Given a TRowResult, return the pair (key, {'column': value})
@@ -118,41 +99,6 @@ class HTable(object):
             for item in ret:
                 yield self._hrow_to_tuple(item)
         self._client.scannerClose(scanner)
-
-    def scanner(self, startRow="", stopRow="", columnlist="", timestamp=None):
-        '''
-        Get a scanner on the current table starting at the specified row and
-        ending at the last row in the table.  Return the specified columns.
-        Only values with the specified timestamp are returned.
-        @param startRow starting row in table to scan.  send "" (empty string) to
-                start at the first row.
-        @param stopRow row to stop scanning on.  This row is *not* included in the
-                scanner's results
-        @param columnList columns to scan. If column name is a column family, all
-                columns of the specified column family are returned.  Its also possible
-                to pass a regex in the column qualifier.
-        @param timestamp timestamp
-
-        @return scanner iterator
-        '''
-        if stopRow: #untested
-            if timestamp: #untested
-                scanner = self._client.scannerOpenWithStopTs(self._tableName, startRow, stopRow, columnlist, timestamp)
-            else: #untested
-                scanner = self._client.scannerOpenWithStop(self._tableName, startRow, stopRow, columnlist)
-        elif timestamp: #untested
-            scanner = self._client.scannerOpenTs(self._tableName, startRow, columnlist, timestamp)
-        else: #tested
-            scanner = self._client.scannerOpen(self._tableName, startRow, columnlist)
-
-        def next(n=1):
-            while True:
-                ret = self._client.scannerGetList(scanner, n)
-                if not ret:
-                    break
-                yield ret
-            self._client.scannerClose(scanner)
-        return next()
 
     def getTableRegions(self):
         return self._client.getTableRegions(self._tableName)
