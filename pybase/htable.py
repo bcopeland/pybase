@@ -47,11 +47,16 @@ class HTable(object):
         transaction is aborted.  Default current timestamp is used, and
         all entries will have an identical timestamp.
 
+        Setting the value for a column to ``None`` effectively deletes
+        that column.
+
         @param row row key
         @param mutations list of mutation commands, as a dict of column:value
             ex. mutations = {'person:name':'Antonio'}
         """
-        mutations = [Mutation(column=k, value=v) for (k,v) in mutations.iteritems()]
+        mutations = [Mutation(column=k, value=v, isDelete=(v==None)) \
+            for (k,v) in mutations.iteritems()]
+
         self._client.mutateRow(self._tableName, row, mutations)
 
     def insertTs(self, row, mutations, ts): # untested
