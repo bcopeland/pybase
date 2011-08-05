@@ -101,6 +101,9 @@ class HTable(object):
                 yield self._hrow_to_tuple(item)
         self._client.scannerClose(scanner)
 
+    def remove(self, key):
+        self._client.deleteAllRow(self._tableName, key)
+
     def getTableRegions(self):
         return self._client.getTableRegions(self._tableName)
 
