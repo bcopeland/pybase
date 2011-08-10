@@ -37,7 +37,7 @@ class HTable(object):
         return "%s", self._client.getColumnDescriptors(self._tableName)
 
 
-    def insert(self, row, mutations):
+    def insert(self, row, mutations, timestamp=None):
         """
         Apply a series of mutations (updates/deletes) to a row in a
         single transaction.  If an exception is thrown, then the
@@ -54,7 +54,11 @@ class HTable(object):
         mutations = [Mutation(column=k, value=v, isDelete=(v==None)) \
             for (k,v) in mutations.iteritems()]
 
-        self._client.mutateRow(self._tableName, row, mutations)
+        if timestamp is not None:
+            self._client.mutateRowTs(self._tableName, row, mutations,
+                timestamp)
+        else:
+            self._client.mutateRow(self._tableName, row, mutations)
 
     def _hrow_to_tuple(self, row):
         """ Given a TRowResult, return the pair (key, {'column': value})
@@ -67,7 +71,7 @@ class HTable(object):
             cdict[colname] = cell.value
         return (key, cdict)
 
-    def get(self, key, columns=None):
+    def get(self, key, columns=None, timestamp=None):
         """
         Fetch all or part of a row with key `key`.
 
@@ -79,8 +83,12 @@ class HTable(object):
         The return result is of the form:
         ``{column_name: column_value}``, or None if no matches.
         """
-        response = self._client.getRowWithColumns(
-            self._tableName, key, columns)
+        if timestamp is not None:
+            response = self._client.getRowWithColumnsTs(
+                self._tableName, key, columns, timestamp)
+        else:
+            response = self._client.getRowWithColumns(
+                self._tableName, key, columns)
         if not response:
             return None
         return self._hrow_to_tuple(response[0])[1]
@@ -91,8 +99,15 @@ class HTable(object):
         Get a generator over rows in a specified key range.
         """
         buffer_size = 1024
-        scanner = self._client.scannerOpenWithStop(self._tableName,
-            start, finish, columns)
+        scanner = None
+
+        if timestamp is not None:
+            scanner = self._client.scannerOpenWithStopTs(self._tableName,
+                start, finish, columns, timestamp)
+        else:
+            scanner = self._client.scannerOpenWithStop(self._tableName,
+                start, finish, columns)
+
         while True:
             ret = self._client.scannerGetList(scanner, buffer_size)
             if not ret:

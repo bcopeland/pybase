@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 from pybase import *
 from hbase.ttypes import *
+import time
 
 if __name__ == '__main__':
     import progressbar
+
+    timestamp = int(time.time() * 1000)
 
     TABNAME = 'pycassahtable'
     KEYS=256
@@ -21,7 +24,7 @@ if __name__ == '__main__':
         row_key = "%.8x" % i
         value = "%s" % i
         mods = {"foo:ciao":value, "foo:ciao2":value}
-        tab.insert(row_key, mods)
+        tab.insert(row_key, mods, timestamp=timestamp)
         prog.update(i)
 
     print "Testing Scanner"
@@ -31,7 +34,7 @@ if __name__ == '__main__':
     column_limit = ["foo:ciao"]
 
     print "Get single row %s" % start
-    print tab.get(start)
+    print tab.get(start, timestamp=timestamp)
     print
 
     print "Get single row %s, columns %s" % (start, column_limit)
@@ -53,8 +56,14 @@ if __name__ == '__main__':
         print i
     print
 
-    print "Scan starting from %s to %s column='foo:ciao'" % (start, end)
+    print "Scan starting from %s to %s columns=%s" % (start, end, column_limit)
     for i in tab.get_range(start, end, columns=column_limit):
+        print i
+    print
+
+    print "Scan starting from %s to %s columns=%s, ts=%s" % (start, end, column_limit, timestamp)
+    for i in tab.get_range(start, end, columns=column_limit,
+        timestamp=timestamp):
         print i
     print
 
