@@ -60,18 +60,22 @@ class HTable(object):
         else:
             self._client.mutateRow(self._tableName, row, mutations)
 
-    def _hrow_to_tuple(self, row):
+    def _hrow_to_tuple(self, row, include_timestamp):
         """ Given a TRowResult, return the pair (key, {'column': value})
-            TODO: we currently discard the timestamp, we could optionally
-            use 'column' => (value, timestamp) for that use case.
+            If include_timestamp is True, each entry has the tuple
+            (value, timestamp) instead of just value.
         """
         key = row.row
         cdict = {}
         for colname, cell in row.columns.iteritems():
-            cdict[colname] = cell.value
+            if include_timestamp:
+                value = (cell.value, cell.timestamp)
+            else:
+                value = cell.value
+            cdict[colname] = value
         return (key, cdict)
 
-    def get(self, key, columns=None, timestamp=None):
+    def get(self, key, columns=None, timestamp=None, include_timestamp=False):
         """
         Fetch all or part of a row with key `key`.
 
@@ -91,10 +95,11 @@ class HTable(object):
                 self._tableName, key, columns)
         if not response:
             return None
-        return self._hrow_to_tuple(response[0])[1]
+        return self._hrow_to_tuple(response[0], include_timestamp)[1]
 
 
-    def get_range(self, start='', finish='', columns=None, timestamp=None):
+    def get_range(self, start='', finish='', columns=None, timestamp=None,
+        include_timestamp=False):
         """
         Get a generator over rows in a specified key range.
         """
@@ -113,7 +118,7 @@ class HTable(object):
             if not ret:
                 break
             for item in ret:
-                yield self._hrow_to_tuple(item)
+                yield self._hrow_to_tuple(item, include_timestamp)
         self._client.scannerClose(scanner)
 
     def remove(self, key):

@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     print "Scan starting from %s to %s columns=%s, ts=%s" % (start, end, column_limit, timestamp)
     for i in tab.get_range(start, end, columns=column_limit,
-        timestamp=timestamp):
+        timestamp=timestamp, include_timestamp=True):
         print i
     print
 
