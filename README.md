@@ -4,20 +4,8 @@ pybase
 pybase is a python library for HBase, based on Pycassa
 (http://github.com/pycassa/pycassa), a python library for Cassandra.
 
-This is a fork from the original project at:
+This is a fork from the original project by Antonio Barbuzzi, available at:
 https://github.com/antoniobarbuzzi/pybase
-
-It inherits some pycassa features, therefore:
-
-1. Simplified thrift interface
-2. Thread safe
-
-Documentation
--------------
-
-Not very well documented, it was just a private project. Read
-single_thread_test.py or multiple_thread_test.py to understand how to use it.
-
 
 Requirements
 ------------
@@ -35,69 +23,56 @@ them with your own.
 Installation
 ------------
 
-Just copy the directory in your program, or in your $PYTHONPATH..
-
-Connecting
-----------
-
-connection.py is just a version of the same file of pycassa, with minor
-modifications.
+Just copy the directory in your program, or in your $PYTHONPATH.
 
 Basic Usage
 ----------
 
-Start HBase Thrift server:
-    
-    [hbase-root]/bin/hbase thrift start
+To get a connection:
 
-Connect to it:
-    
-    client = connect_thread_local(['hdnn:9090'])
+    >>> import pybase
+    >>> server_list = ['localhost:9090']
+    >>> client = pybase.connect_thread_local(server_list)
 
-List tables:
-    
-    client.getTableNames()
+Create an instance of the table you wish to modify, and use
+insert() to add new rows and get() to retrieve rows:
 
-Access(/create) a table:
-    
-    tab = HTable(client, TABNAME, [ColumnDescriptor(name='foo:'), ColumnDescriptor(name='foo2:')], createIfNotExist=True, overwrite=False)
+    >>> person = pybase.HTable(client, 'person')
+    >>> person.insert('00001', {'person:name': 'Joe User'})
+    >>> person.get('00001')
+    {'person:name': 'Joe User'}
 
-Choose the row where to put some data:
-    
-    row = "newkey"
+insert() will also update existing rows:
 
-Create a dictionary with the data to insert (or to modify) for your key:
-    
-    changes = {"foo:name":"Antonio", "foo:surname":"Barbuzzi"}
-    
-Insert new data in the table:
-    
-    tab.insert(row, changes)
+    >>> person.insert('00001', {'person:dob': '01/10/1970'})
+    >>> person.get('00001')
+    {'person:name': 'Joe User', 'person:dob': '01/10/1970'}
 
-Access to all data in the table, using a scanner on it:
-    
-    it = tab.scanner()
-    for i in it:
-        print i
+Use get_range() for range queries:
 
-Note that scanner supports more parameters, see its documentation or the
-examples.
-
-Print all the Regions for a table:
-    
-    print tab.getTableRegions()
-    
-Other features, you should just look to the code
-
-Extending pybase and accessing Thrift API
-----------
+    >>> person.insert('00002', {'person:name': 'A. Guy'})
+    >>> person.insert('00004', {'person:name': 'Frank Franklestein'})
+    >>> for i in person.get_range('00001','00003'):
+    ...     print i
+    ('00001', {'person:name': 'Joe User', 'person:dob': '01/10/1970'})
+    ('00002', {'person:name': 'A. Guy'})
 
 
-Connection overrides __getattr__, so if want to call a function defined in the Thrift HBase API using Connection, a new function is dinamically created that access the Thrift API
+Implementation Notes
+--------------------
 
-Note that HTable saves an instance of the Connection (ThreadLocalConnection or SingleConnection), therefore, for example, when Htable.getTableRegions() calls ThreadLocalConnection.getTableRegions (or SingleLocalConnection), the new function is created at runtime (there isn't any getTableRegions in Connection).
+The current thrift interface is the original HBase thrift interface.
+However, a new thrift interface (thrift2) is currently being designed
+in HBase.  I will likely shift to that when generally available.
 
-    class HTable:
-        # cut
-        def getTableRegions(self):
-            return self._client.getTableRegions(self._tableName)
+HBase thrift has an interesting interpretation of timestamp parameters
+on reads: they are used as the upper limit of range searches, but this
+limit is applied exclusively in HBase so you will get all rows less
+than the supplied timestamp.
+
+I feel that this implementation is useless for my purposes, so I modified
+the HBase thrift server to use setTimestamp() instead of setTimeRange() in
+all the cases I care about.  Do note that you may get something unexpected
+if you use this parameter; my intended interpretation is the result with
+my modifications.
+
