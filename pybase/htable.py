@@ -6,68 +6,56 @@ from hbase.ttypes import *
 
 __all__ = ['HTable']
 
-#TODO: strip admin/user functions of HTable
-
 class HTable(object):
-    def __init__(self, client, tableName, columnFamiliesList=[], createIfNotExist=False, overwrite=False):
+    def __init__(self, client, tableName):
         self._client = client
         self._tableName = tableName
-        self._columnFamiliesList = columnFamiliesList
-        self._createIfNotExist = createIfNotExist
-        self._overwrite = overwrite
-        if createIfNotExist:
-            try:
-                self._client.createTable(tableName, columnFamiliesList)
-            except AlreadyExists, tx:
-                if not overwrite:
-                    print "Thrift exception"
-                    print '%s' % (tx.message)
-                    print "Overwrite not setted"
-                    #raise
-                else:
-                    self._client.disableTable(tableName)
-                    self._client.deleteTable(tableName)
-                    self._client.createTable(tableName, columnFamiliesList)
 
     def __str__(self):
-        descr = "%s (" % self._tableName + ", ".join(["%s" % cf.name for cf in self._columnFamiliesList]) + ")"
+        descr = "%s" % self._tableName
         return descr
-
-    def __repr__(self):
-        return "%s", self._client.getColumnDescriptors(self._tableName)
-
 
     def insert(self, row, mutations, timestamp=None):
         """
-        Apply a series of mutations (updates/deletes) to a row in a
+        Apply a series of mutations (inserts/updates) to a row in a
         single transaction.  If an exception is thrown, then the
         transaction is aborted.  Default current timestamp is used, and
         all entries will have an identical timestamp.
-
-        Setting the value for a column to ``None`` effectively deletes
-        that column.
 
         @param row row key
         @param mutations list of mutation commands, as a dict of column:value
             ex. mutations = {'person:name':'Antonio'}
         """
-        mutations = [Mutation(column=k, value=v, isDelete=(v==None)) \
-            for (k,v) in mutations.iteritems()]
+        columns = []
+        for k, v in mutations.iteritems():
+            (family, qualifier) = k.split(':', 2)
+            columns.append(TColumnValue(family=family,
+                qualifier=qualifier, value=v, timestamp=timestamp))
 
-        if timestamp is not None:
-            self._client.mutateRowTs(self._tableName, row, mutations,
-                timestamp)
-        else:
-            self._client.mutateRow(self._tableName, row, mutations)
+        self._client.put(self._tableName, TPut(row=row,
+            columnValues=columns, timestamp=timestamp))
+
+    def _columns_to_tcolumn(self, columns, timestamp):
+        if not columns:
+            return None
+
+        cols = []
+        for key in columns.iteritems():
+            (family, qualifier) = key.split(':', 2)
+            cols.append(TColumn(family=family,
+                qualifier=qualifier, timestamp=timestamp))
+        return cols
+
 
     def _hrow_to_tuple(self, row, include_timestamp):
-        """ Given a TRowResult, return the pair (key, {'column': value})
+        """ Given a TResult, return the pair (key, {'column': value})
             If include_timestamp is True, each entry has the tuple
             (value, timestamp) instead of just value.
         """
         key = row.row
         cdict = {}
-        for colname, cell in row.columns.iteritems():
+        for cell in row.columnValues.iteritems():
+            colname = ':'.join(cell.family, cell.qualifier)
             if include_timestamp:
                 value = (cell.value, cell.timestamp)
             else:
@@ -87,18 +75,16 @@ class HTable(object):
         The return result is of the form:
         ``{column_name: column_value}``, or None if no matches.
         """
-        if timestamp is not None:
-            response = self._client.getRowWithColumnsTs(
-                self._tableName, key, columns, timestamp)
-        else:
-            response = self._client.getRowWithColumns(
-                self._tableName, key, columns)
-        if not response:
+        response = self._client.get(self._tableName,
+            TGet(row=key, columns=self._columns_to_tcolumn(columns, timestamp),
+                 timestamp=timestamp))
+
+        if not response.row:
             return None
-        return self._hrow_to_tuple(response[0], include_timestamp)[1]
+        return self._hrow_to_tuple(response.row, include_timestamp)[1]
 
 
-    def get_range(self, start='', finish='', columns=None, timestamp=None,
+    def get_range(self, start='', finish='', columns=None,
         include_timestamp=False):
         """
         Get a generator over rows in a specified key range.
@@ -106,24 +92,28 @@ class HTable(object):
         buffer_size = 1024
         scanner = None
 
-        if timestamp is not None:
-            scanner = self._client.scannerOpenWithStopTs(self._tableName,
-                start, finish, columns, timestamp)
-        else:
-            scanner = self._client.scannerOpenWithStop(self._tableName,
-                start, finish, columns)
+        tscan = TScan(startRow=start, stopRow=finish,
+            columns=self._columns_to_tcolumn(columns, None))
+
+        scanner = self._client.openScanner(self._tableName, tscan)
 
         while True:
-            ret = self._client.scannerGetList(scanner, buffer_size)
+            ret = self._client.getScannerRows(scanner, buffer_size)
             if not ret:
                 break
             for item in ret:
                 yield self._hrow_to_tuple(item, include_timestamp)
-        self._client.scannerClose(scanner)
+        self._client.closeScanner(scanner)
 
-    def remove(self, key):
-        self._client.deleteAllRow(self._tableName, key)
+    def remove(self, key, columns=None, timestamp=None):
+        """
+        Apply a series of deletes to a row in a single transaction.
 
-    def getTableRegions(self):
-        return self._client.getTableRegions(self._tableName)
+        Supply a list of column names to delete parts of a row.
+        Otherwise, the whole row will be deleted.
+        """
+        self._client.deleteSingle(self._tableName,
+            TDelete(row=key,
+                    columns=self._columns_to_tcolumn(columns, timestamp),
+                    timestamp=timestamp))
 

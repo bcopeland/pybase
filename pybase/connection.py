@@ -14,7 +14,7 @@ from thrift.transport import TTransport
 from thrift.transport import TSocket
 from thrift.protocol import TBinaryProtocol
 
-from hbase import Hbase
+from hbase import THBaseService
 
 __all__ = ['connect', 'connect_thread_local', 'NoServerAvailable']
 
@@ -33,7 +33,7 @@ def create_client_transport(server, framed_transport, timeout, logins, hbase):
     else:
         transport = TTransport.TBufferedTransport(socket)
     protocol = TBinaryProtocol.TBinaryProtocolAccelerated(transport)
-    client = Hbase.Client(protocol)
+    client = THBaseService.Client(protocol)
     transport.open()
 
     if logins is not None:
