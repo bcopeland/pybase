@@ -40,7 +40,7 @@ class HTable(object):
             return None
 
         cols = []
-        for key in columns.iteritems():
+        for key in columns:
             family, qualifier = key.split(':', 1)
             cols.append(TColumn(family=family,
                 qualifier=qualifier, timestamp=timestamp))
