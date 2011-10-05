@@ -54,8 +54,8 @@ class HTable(object):
         """
         key = row.row
         cdict = {}
-        for cell in row.columnValues.iteritems():
-            colname = ':'.join(cell.family, cell.qualifier)
+        for cell in row.columnValues:
+            colname = ':'.join([cell.family, cell.qualifier])
             if include_timestamp:
                 value = (cell.value, cell.timestamp)
             else:
@@ -81,7 +81,7 @@ class HTable(object):
 
         if not response.row:
             return None
-        return self._hrow_to_tuple(response.row, include_timestamp)[1]
+        return self._hrow_to_tuple(response, include_timestamp)[1]
 
 
     def get_range(self, start='', finish='', columns=None,
