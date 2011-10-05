@@ -28,7 +28,7 @@ class HTable(object):
         """
         columns = []
         for k, v in mutations.iteritems():
-            (family, qualifier) = k.split(':', 2)
+            family, qualifier = k.split(':', 1)
             columns.append(TColumnValue(family=family,
                 qualifier=qualifier, value=v, timestamp=timestamp))
 
@@ -41,7 +41,7 @@ class HTable(object):
 
         cols = []
         for key in columns.iteritems():
-            (family, qualifier) = key.split(':', 2)
+            family, qualifier = key.split(':', 1)
             cols.append(TColumn(family=family,
                 qualifier=qualifier, timestamp=timestamp))
         return cols
