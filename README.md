@@ -61,18 +61,20 @@ Use get_range() for range queries:
 Implementation Notes
 --------------------
 
-The current thrift interface is the original HBase thrift interface.
-However, a new thrift interface (thrift2) is currently being designed
-in HBase.  I will likely shift to that when generally available.
+This has been updated to use the thrift2 interface, which is still
+in.  The thrift2 interface is much better than the original and closer
+to the API that Java provides.  As such, pybase really only provides
+some syntatic sugar over using the thrift API directly (for example,
+thrift classes are hidden from the user).  When in doubt, I have chosen
+to name functions the same or similar to corresponding features in
+pycassa.
 
-HBase thrift has an interesting interpretation of timestamp parameters
-on reads: they are used as the upper limit of range searches, but this
-limit is applied exclusively in HBase so you will get all rows less
-than the supplied timestamp.
-
-I feel that this implementation is useless for my purposes, so I modified
-the HBase thrift server to use setTimestamp() instead of setTimeRange() in
-all the cases I care about.  Do note that you may get something unexpected
-if you use this parameter; my intended interpretation is the result with
-my modifications.
-
+Earlier versions of pybase would treat updates to 'None' as deletes.
+This was because the Mutations interface supported sending these at
+the same time.  Unfortunately, HBase does not really support atomic
+inserts and deletes of a row in the same update, and the newer API
+does not provide a way to pretend to do so.  Thus, I have reinstated
+'None' inserts and added a columns parameter to remove to enable
+column removal.  If you want atomic deletes, you should nominate some
+value as a sentinel and treat columns with that value as dead until
+your real delete can run.
