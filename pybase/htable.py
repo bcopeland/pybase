@@ -15,13 +15,19 @@ class HTable(object):
         descr = "%s" % self._tableName
         return descr
 
+    def _split_cf(self, key):
+        if ':' in key:
+            return key.split(':', 1)
+
+        return key, None
+
     def _columns_to_tcolumn(self, columns, timestamp):
         if not columns:
             return None
 
         cols = []
         for key in columns:
-            family, qualifier = key.split(':', 1)
+            family, qualifier = self._split_cf(key)
             cols.append(TColumn(family=family,
                 qualifier=qualifier, timestamp=timestamp))
         return cols
@@ -29,7 +35,7 @@ class HTable(object):
     def _column_dict_to_tcolumnvalues(self, colvals, timestamp=None):
         columns = []
         for k, v in colvals.iteritems():
-            family, qualifier = k.split(':', 1)
+            family, qualifier = self._split_cf(k)
             columns.append(TColumnValue(family=family,
                 qualifier=qualifier, value=v, timestamp=timestamp))
         return columns
