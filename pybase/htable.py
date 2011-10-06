@@ -15,6 +15,25 @@ class HTable(object):
         descr = "%s" % self._tableName
         return descr
 
+    def _columns_to_tcolumn(self, columns, timestamp):
+        if not columns:
+            return None
+
+        cols = []
+        for key in columns:
+            family, qualifier = key.split(':', 1)
+            cols.append(TColumn(family=family,
+                qualifier=qualifier, timestamp=timestamp))
+        return cols
+
+    def _column_dict_to_tcolumnvalues(self, colvals, timestamp=None):
+        columns = []
+        for k, v in colvals.iteritems():
+            family, qualifier = k.split(':', 1)
+            columns.append(TColumnValue(family=family,
+                qualifier=qualifier, value=v, timestamp=timestamp))
+        return columns
+
     def insert(self, row, mutations, timestamp=None):
         """
         Apply a series of mutations (inserts/updates) to a row in a
@@ -26,25 +45,19 @@ class HTable(object):
         @param mutations list of mutation commands, as a dict of column:value
             ex. mutations = {'person:name':'Antonio'}
         """
-        columns = []
-        for k, v in mutations.iteritems():
-            family, qualifier = k.split(':', 1)
-            columns.append(TColumnValue(family=family,
-                qualifier=qualifier, value=v, timestamp=timestamp))
 
-        self._client.put(self._tableName, TPut(row=row,
-            columnValues=columns, timestamp=timestamp))
+        return self._client.put(self._tableName, TPut(row=row,
+            columnValues=self._column_dict_to_tcolumnvalues(mutations),
+            timestamp=timestamp))
 
-    def _columns_to_tcolumn(self, columns, timestamp):
-        if not columns:
-            return None
+    def check_and_put(self, check_row, check_column, check_value,
+            put_values, timestamp=None):
 
-        cols = []
-        for key in columns:
-            family, qualifier = key.split(':', 1)
-            cols.append(TColumn(family=family,
-                qualifier=qualifier, timestamp=timestamp))
-        return cols
+        family, qualifier = check_column.split(':', 1)
+        return self._client.checkAndPut(self._tableName, check_row, family,
+            qualifier, check_value, TPut(row=check_row,
+            columnValues=self._column_dict_to_tcolumnvalues(put_values),
+            timestamp=timestamp))
 
 
     def _hrow_to_tuple(self, row, include_timestamp):
