@@ -1960,8 +1960,6 @@ class checkAndPut_args:
       raise TProtocol.TProtocolException(message='Required field family is unset!')
     if self.qualifier is None:
       raise TProtocol.TProtocolException(message='Required field qualifier is unset!')
-    if self.value is None:
-      raise TProtocol.TProtocolException(message='Required field value is unset!')
     if self.put is None:
       raise TProtocol.TProtocolException(message='Required field put is unset!')
     return
