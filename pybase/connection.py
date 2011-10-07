@@ -147,7 +147,7 @@ class SingleConnection(object):
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
                 self._client = None
-                raise NoServerAvailable()
+                raise
 
         setattr(self, attr, client_call)
         return getattr(self, attr)
@@ -199,7 +199,7 @@ class ThreadLocalConnection(object):
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
                 self._local.client = None
-                raise NoServerAvailable()
+                raise
 
         setattr(self, attr, client_call)
         return getattr(self, attr)
