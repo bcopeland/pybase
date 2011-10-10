@@ -14,6 +14,25 @@ except:
   fastbinary = None
 
 
+class TDeleteType:
+  """
+  Specify type of delete:
+   - DELETE_COLUMN means exactly one version will be removed,
+   - DELETE_COLUMNS means previous versions will also be removed.
+  """
+  DELETE_COLUMN = 0
+  DELETE_COLUMNS = 1
+
+  _VALUES_TO_NAMES = {
+    0: "DELETE_COLUMN",
+    1: "DELETE_COLUMNS",
+  }
+
+  _NAMES_TO_VALUES = {
+    "DELETE_COLUMN": 0,
+    "DELETE_COLUMNS": 1,
+  }
+
 
 class TTimeRange:
   """
@@ -728,19 +747,20 @@ class TDelete:
   Specifying a family and a column qualifier in a TColumn will delete only
   this qualifier. If a timestamp is specified only versions equal
   to this timestamp will be deleted. If no timestamp is specified the
-  most recent version will be deleted.
+  most recent version will be deleted.  To delete all previous versions,
+  specify the DELETE_COLUMNS TDeleteType.
 
   The top level timestamp is only used if a complete row should be deleted
   (i.e. no columns are passed) and if it is specified it works the same way
   as if you had added a TColumn for every column family and this timestamp
   (i.e. all versions older than or equal in all column families will be deleted)
 
-  TODO: This is missing the KeyValue.Type.DeleteColumn semantic. I could add a DeleteType or something like that
 
   Attributes:
    - row
    - columns
    - timestamp
+   - deleteType
   """
 
   thrift_spec = (
@@ -748,12 +768,14 @@ class TDelete:
     (1, TType.STRING, 'row', None, None, ), # 1
     (2, TType.LIST, 'columns', (TType.STRUCT,(TColumn, TColumn.thrift_spec)), None, ), # 2
     (3, TType.I64, 'timestamp', None, None, ), # 3
+    (4, TType.I32, 'deleteType', None, None, ), # 4
   )
 
-  def __init__(self, row=None, columns=None, timestamp=None,):
+  def __init__(self, row=None, columns=None, timestamp=None, deleteType=None,):
     self.row = row
     self.columns = columns
     self.timestamp = timestamp
+    self.deleteType = deleteType
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -785,6 +807,11 @@ class TDelete:
           self.timestamp = iprot.readI64();
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.deleteType = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -809,6 +836,10 @@ class TDelete:
     if self.timestamp is not None:
       oprot.writeFieldBegin('timestamp', TType.I64, 3)
       oprot.writeI64(self.timestamp)
+      oprot.writeFieldEnd()
+    if self.deleteType is not None:
+      oprot.writeFieldBegin('deleteType', TType.I32, 4)
+      oprot.writeI32(self.deleteType)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
