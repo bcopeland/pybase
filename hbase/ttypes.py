@@ -603,7 +603,7 @@ class TPut:
   don't have one. If you don't provide a default timestamp
   the current time is inserted.
 
-  You can also define it this Put should be written
+  You can also specify if this Put should be written
   to the write-ahead Log (WAL) or not. It defaults to true.
 
   Attributes:
@@ -832,6 +832,11 @@ class TDelete:
 
 class TIncrement:
   """
+  Used to perform Increment operations for a single row.
+
+  You can specify if this Increment should be written
+  to the write-ahead Log (WAL) or not. It defaults to true.
+
   Attributes:
    - row
    - columns

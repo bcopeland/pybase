@@ -61,18 +61,6 @@ class Iface:
     """
     pass
 
-  def getRowOrBefore(self, table, row, family):
-    """
-    Return the row that matches <i>row</i> exactly,
-    or the one that immediately precedes it.
-
-    Parameters:
-     - table: the table to get from
-     - row: the row key to get or the one preceding it
-     - family: the column family to get
-    """
-    pass
-
   def put(self, table, put):
     """
     Commit a TPut to a table.
@@ -155,20 +143,6 @@ class Iface:
     check is for the non-existence of the
     column in question
      - deleteSingle: the TDelete to execute if the check succeeds
-    """
-    pass
-
-  def incrementColumnValue(self, table, row, family, qualifier, amount, writeToWal):
-    """
-    Atomically increments a single column by a user provided amount.
-
-    Parameters:
-     - table: the table to increment the value on
-     - row: the row where the value should be incremented
-     - family: the family in the row where the value should be incremented
-     - qualifier: the column qualifier where the value should be incremented
-     - amount: the amount by which the value should be incremented
-     - writeToWal: if this increment should be written to the WAL or not
     """
     pass
 
@@ -346,45 +320,6 @@ class Client(Iface):
     if result.io is not None:
       raise result.io
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getMultiple failed: unknown result");
-
-  def getRowOrBefore(self, table, row, family):
-    """
-    Return the row that matches <i>row</i> exactly,
-    or the one that immediately precedes it.
-
-    Parameters:
-     - table: the table to get from
-     - row: the row key to get or the one preceding it
-     - family: the column family to get
-    """
-    self.send_getRowOrBefore(table, row, family)
-    return self.recv_getRowOrBefore()
-
-  def send_getRowOrBefore(self, table, row, family):
-    self._oprot.writeMessageBegin('getRowOrBefore', TMessageType.CALL, self._seqid)
-    args = getRowOrBefore_args()
-    args.table = table
-    args.row = row
-    args.family = family
-    args.write(self._oprot)
-    self._oprot.writeMessageEnd()
-    self._oprot.trans.flush()
-
-  def recv_getRowOrBefore(self, ):
-    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
-    if mtype == TMessageType.EXCEPTION:
-      x = TApplicationException()
-      x.read(self._iprot)
-      self._iprot.readMessageEnd()
-      raise x
-    result = getRowOrBefore_result()
-    result.read(self._iprot)
-    self._iprot.readMessageEnd()
-    if result.success is not None:
-      return result.success
-    if result.io is not None:
-      raise result.io
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "getRowOrBefore failed: unknown result");
 
   def put(self, table, put):
     """
@@ -629,50 +564,6 @@ class Client(Iface):
       raise result.io
     raise TApplicationException(TApplicationException.MISSING_RESULT, "checkAndDelete failed: unknown result");
 
-  def incrementColumnValue(self, table, row, family, qualifier, amount, writeToWal):
-    """
-    Atomically increments a single column by a user provided amount.
-
-    Parameters:
-     - table: the table to increment the value on
-     - row: the row where the value should be incremented
-     - family: the family in the row where the value should be incremented
-     - qualifier: the column qualifier where the value should be incremented
-     - amount: the amount by which the value should be incremented
-     - writeToWal: if this increment should be written to the WAL or not
-    """
-    self.send_incrementColumnValue(table, row, family, qualifier, amount, writeToWal)
-    return self.recv_incrementColumnValue()
-
-  def send_incrementColumnValue(self, table, row, family, qualifier, amount, writeToWal):
-    self._oprot.writeMessageBegin('incrementColumnValue', TMessageType.CALL, self._seqid)
-    args = incrementColumnValue_args()
-    args.table = table
-    args.row = row
-    args.family = family
-    args.qualifier = qualifier
-    args.amount = amount
-    args.writeToWal = writeToWal
-    args.write(self._oprot)
-    self._oprot.writeMessageEnd()
-    self._oprot.trans.flush()
-
-  def recv_incrementColumnValue(self, ):
-    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
-    if mtype == TMessageType.EXCEPTION:
-      x = TApplicationException()
-      x.read(self._iprot)
-      self._iprot.readMessageEnd()
-      raise x
-    result = incrementColumnValue_result()
-    result.read(self._iprot)
-    self._iprot.readMessageEnd()
-    if result.success is not None:
-      return result.success
-    if result.io is not None:
-      raise result.io
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "incrementColumnValue failed: unknown result");
-
   def increment(self, table, increment):
     """
     Parameters:
@@ -830,14 +721,12 @@ class Processor(Iface, TProcessor):
     self._processMap["exists"] = Processor.process_exists
     self._processMap["get"] = Processor.process_get
     self._processMap["getMultiple"] = Processor.process_getMultiple
-    self._processMap["getRowOrBefore"] = Processor.process_getRowOrBefore
     self._processMap["put"] = Processor.process_put
     self._processMap["checkAndPut"] = Processor.process_checkAndPut
     self._processMap["putMultiple"] = Processor.process_putMultiple
     self._processMap["deleteSingle"] = Processor.process_deleteSingle
     self._processMap["deleteMultiple"] = Processor.process_deleteMultiple
     self._processMap["checkAndDelete"] = Processor.process_checkAndDelete
-    self._processMap["incrementColumnValue"] = Processor.process_incrementColumnValue
     self._processMap["increment"] = Processor.process_increment
     self._processMap["openScanner"] = Processor.process_openScanner
     self._processMap["getScannerRows"] = Processor.process_getScannerRows
@@ -896,20 +785,6 @@ class Processor(Iface, TProcessor):
     except TIOError, io:
       result.io = io
     oprot.writeMessageBegin("getMultiple", TMessageType.REPLY, seqid)
-    result.write(oprot)
-    oprot.writeMessageEnd()
-    oprot.trans.flush()
-
-  def process_getRowOrBefore(self, seqid, iprot, oprot):
-    args = getRowOrBefore_args()
-    args.read(iprot)
-    iprot.readMessageEnd()
-    result = getRowOrBefore_result()
-    try:
-      result.success = self._handler.getRowOrBefore(args.table, args.row, args.family)
-    except TIOError, io:
-      result.io = io
-    oprot.writeMessageBegin("getRowOrBefore", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -994,20 +869,6 @@ class Processor(Iface, TProcessor):
     except TIOError, io:
       result.io = io
     oprot.writeMessageBegin("checkAndDelete", TMessageType.REPLY, seqid)
-    result.write(oprot)
-    oprot.writeMessageEnd()
-    oprot.trans.flush()
-
-  def process_incrementColumnValue(self, seqid, iprot, oprot):
-    args = incrementColumnValue_args()
-    args.read(iprot)
-    iprot.readMessageEnd()
-    result = incrementColumnValue_result()
-    try:
-      result.success = self._handler.incrementColumnValue(args.table, args.row, args.family, args.qualifier, args.amount, args.writeToWal)
-    except TIOError, io:
-      result.io = io
-    oprot.writeMessageBegin("incrementColumnValue", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -1519,169 +1380,6 @@ class getMultiple_result:
       for iter55 in self.success:
         iter55.write(oprot)
       oprot.writeListEnd()
-      oprot.writeFieldEnd()
-    if self.io is not None:
-      oprot.writeFieldBegin('io', TType.STRUCT, 1)
-      self.io.write(oprot)
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    return
-
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
-class getRowOrBefore_args:
-  """
-  Attributes:
-   - table: the table to get from
-   - row: the row key to get or the one preceding it
-   - family: the column family to get
-  """
-
-  thrift_spec = (
-    None, # 0
-    (1, TType.STRING, 'table', None, None, ), # 1
-    (2, TType.STRING, 'row', None, None, ), # 2
-    (3, TType.STRING, 'family', None, None, ), # 3
-  )
-
-  def __init__(self, table=None, row=None, family=None,):
-    self.table = table
-    self.row = row
-    self.family = family
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 1:
-        if ftype == TType.STRING:
-          self.table = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 2:
-        if ftype == TType.STRING:
-          self.row = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 3:
-        if ftype == TType.STRING:
-          self.family = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('getRowOrBefore_args')
-    if self.table is not None:
-      oprot.writeFieldBegin('table', TType.STRING, 1)
-      oprot.writeString(self.table)
-      oprot.writeFieldEnd()
-    if self.row is not None:
-      oprot.writeFieldBegin('row', TType.STRING, 2)
-      oprot.writeString(self.row)
-      oprot.writeFieldEnd()
-    if self.family is not None:
-      oprot.writeFieldBegin('family', TType.STRING, 3)
-      oprot.writeString(self.family)
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    if self.table is None:
-      raise TProtocol.TProtocolException(message='Required field table is unset!')
-    if self.row is None:
-      raise TProtocol.TProtocolException(message='Required field row is unset!')
-    if self.family is None:
-      raise TProtocol.TProtocolException(message='Required field family is unset!')
-    return
-
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
-class getRowOrBefore_result:
-  """
-  Attributes:
-   - success
-   - io
-  """
-
-  thrift_spec = (
-    (0, TType.STRUCT, 'success', (TResult, TResult.thrift_spec), None, ), # 0
-    (1, TType.STRUCT, 'io', (TIOError, TIOError.thrift_spec), None, ), # 1
-  )
-
-  def __init__(self, success=None, io=None,):
-    self.success = success
-    self.io = io
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 0:
-        if ftype == TType.STRUCT:
-          self.success = TResult()
-          self.success.read(iprot)
-        else:
-          iprot.skip(ftype)
-      elif fid == 1:
-        if ftype == TType.STRUCT:
-          self.io = TIOError()
-          self.io.read(iprot)
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('getRowOrBefore_result')
-    if self.success is not None:
-      oprot.writeFieldBegin('success', TType.STRUCT, 0)
-      self.success.write(oprot)
       oprot.writeFieldEnd()
     if self.io is not None:
       oprot.writeFieldBegin('io', TType.STRUCT, 1)
@@ -2680,206 +2378,6 @@ class checkAndDelete_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.BOOL, 0)
       oprot.writeBool(self.success)
-      oprot.writeFieldEnd()
-    if self.io is not None:
-      oprot.writeFieldBegin('io', TType.STRUCT, 1)
-      self.io.write(oprot)
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    return
-
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
-class incrementColumnValue_args:
-  """
-  Attributes:
-   - table: the table to increment the value on
-   - row: the row where the value should be incremented
-   - family: the family in the row where the value should be incremented
-   - qualifier: the column qualifier where the value should be incremented
-   - amount: the amount by which the value should be incremented
-   - writeToWal: if this increment should be written to the WAL or not
-  """
-
-  thrift_spec = (
-    None, # 0
-    (1, TType.STRING, 'table', None, None, ), # 1
-    (2, TType.STRING, 'row', None, None, ), # 2
-    (3, TType.STRING, 'family', None, None, ), # 3
-    (4, TType.STRING, 'qualifier', None, None, ), # 4
-    (5, TType.I64, 'amount', None, 1, ), # 5
-    (6, TType.BOOL, 'writeToWal', None, True, ), # 6
-  )
-
-  def __init__(self, table=None, row=None, family=None, qualifier=None, amount=thrift_spec[5][4], writeToWal=thrift_spec[6][4],):
-    self.table = table
-    self.row = row
-    self.family = family
-    self.qualifier = qualifier
-    self.amount = amount
-    self.writeToWal = writeToWal
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 1:
-        if ftype == TType.STRING:
-          self.table = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 2:
-        if ftype == TType.STRING:
-          self.row = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 3:
-        if ftype == TType.STRING:
-          self.family = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 4:
-        if ftype == TType.STRING:
-          self.qualifier = iprot.readString();
-        else:
-          iprot.skip(ftype)
-      elif fid == 5:
-        if ftype == TType.I64:
-          self.amount = iprot.readI64();
-        else:
-          iprot.skip(ftype)
-      elif fid == 6:
-        if ftype == TType.BOOL:
-          self.writeToWal = iprot.readBool();
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('incrementColumnValue_args')
-    if self.table is not None:
-      oprot.writeFieldBegin('table', TType.STRING, 1)
-      oprot.writeString(self.table)
-      oprot.writeFieldEnd()
-    if self.row is not None:
-      oprot.writeFieldBegin('row', TType.STRING, 2)
-      oprot.writeString(self.row)
-      oprot.writeFieldEnd()
-    if self.family is not None:
-      oprot.writeFieldBegin('family', TType.STRING, 3)
-      oprot.writeString(self.family)
-      oprot.writeFieldEnd()
-    if self.qualifier is not None:
-      oprot.writeFieldBegin('qualifier', TType.STRING, 4)
-      oprot.writeString(self.qualifier)
-      oprot.writeFieldEnd()
-    if self.amount is not None:
-      oprot.writeFieldBegin('amount', TType.I64, 5)
-      oprot.writeI64(self.amount)
-      oprot.writeFieldEnd()
-    if self.writeToWal is not None:
-      oprot.writeFieldBegin('writeToWal', TType.BOOL, 6)
-      oprot.writeBool(self.writeToWal)
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    if self.table is None:
-      raise TProtocol.TProtocolException(message='Required field table is unset!')
-    if self.row is None:
-      raise TProtocol.TProtocolException(message='Required field row is unset!')
-    if self.family is None:
-      raise TProtocol.TProtocolException(message='Required field family is unset!')
-    if self.qualifier is None:
-      raise TProtocol.TProtocolException(message='Required field qualifier is unset!')
-    return
-
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
-class incrementColumnValue_result:
-  """
-  Attributes:
-   - success
-   - io
-  """
-
-  thrift_spec = (
-    (0, TType.I64, 'success', None, None, ), # 0
-    (1, TType.STRUCT, 'io', (TIOError, TIOError.thrift_spec), None, ), # 1
-  )
-
-  def __init__(self, success=None, io=None,):
-    self.success = success
-    self.io = io
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 0:
-        if ftype == TType.I64:
-          self.success = iprot.readI64();
-        else:
-          iprot.skip(ftype)
-      elif fid == 1:
-        if ftype == TType.STRUCT:
-          self.io = TIOError()
-          self.io.read(iprot)
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('incrementColumnValue_result')
-    if self.success is not None:
-      oprot.writeFieldBegin('success', TType.I64, 0)
-      oprot.writeI64(self.success)
       oprot.writeFieldEnd()
     if self.io is not None:
       oprot.writeFieldBegin('io', TType.STRUCT, 1)
