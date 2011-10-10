@@ -134,5 +134,6 @@ class HTable(object):
         self._client.deleteSingle(self._tableName,
             TDelete(row=key,
                     columns=self._columns_to_tcolumn(columns, timestamp),
-                    timestamp=timestamp))
+                    timestamp=timestamp,
+                    deleteType=TDeleteType.DELETE_COLUMNS))
 
