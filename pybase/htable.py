@@ -56,7 +56,7 @@ class HTable(object):
             columnValues=self._column_dict_to_tcolumnvalues(mutations),
             timestamp=timestamp))
 
-    def check_and_put(self, check_row, check_column, check_value,
+    def check_and_insert(self, check_row, check_column, check_value,
             put_values, timestamp=None):
 
         family, qualifier = check_column.split(':', 1)
