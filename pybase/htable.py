@@ -40,28 +40,28 @@ class HTable(object):
                 qualifier=qualifier, value=v, timestamp=timestamp))
         return columns
 
-    def insert(self, row, mutations, timestamp=None):
+    def insert(self, key, put_values, timestamp=None):
         """
         Apply a series of mutations (inserts/updates) to a row in a
         single transaction.  If an exception is thrown, then the
         transaction is aborted.  Default current timestamp is used, and
         all entries will have an identical timestamp.
 
-        @param row row key
-        @param mutations list of mutation commands, as a dict of column:value
-            ex. mutations = {'person:name':'Antonio'}
+        @param key row key
+        @param put_values list of puts, as a dict of column:value
+            ex. put_values = {'person:name':'Antonio'}
         """
 
-        return self._client.put(self._tableName, TPut(row=row,
-            columnValues=self._column_dict_to_tcolumnvalues(mutations),
+        return self._client.put(self._tableName, TPut(row=key,
+            columnValues=self._column_dict_to_tcolumnvalues(put_values),
             timestamp=timestamp))
 
-    def check_and_insert(self, check_row, check_column, check_value,
+    def check_and_insert(self, check_key, check_column, check_value,
             put_values, timestamp=None):
 
         family, qualifier = check_column.split(':', 1)
-        return self._client.checkAndPut(self._tableName, check_row, family,
-            qualifier, check_value, TPut(row=check_row,
+        return self._client.checkAndPut(self._tableName, check_key, family,
+            qualifier, check_value, TPut(row=check_key,
             columnValues=self._column_dict_to_tcolumnvalues(put_values),
             timestamp=timestamp))
 
