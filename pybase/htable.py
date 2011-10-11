@@ -65,7 +65,6 @@ class HTable(object):
             columnValues=self._column_dict_to_tcolumnvalues(put_values),
             timestamp=timestamp))
 
-
     def _hrow_to_tuple(self, row, include_timestamp):
         """ Given a TResult, return the pair (key, {'column': value})
             If include_timestamp is True, each entry has the tuple
@@ -136,4 +135,13 @@ class HTable(object):
                     columns=self._columns_to_tcolumn(columns, timestamp),
                     timestamp=timestamp,
                     deleteType=TDeleteType.DELETE_COLUMNS))
+
+    def check_and_remove(self, check_key, check_column, check_value,
+            columns=None, timestamp=None):
+        family, qualifier = check_column.split(':', 1)
+        return self._client.checkAndDelete(self._tableName, check_key, family,
+            qualifier, check_value, TDelete(row=check_key,
+            columns=self._columns_to_tcolumn(columns, timestamp),
+            timestamp=timestamp,
+            deleteType=TDeleteType.DELETE_COLUMNS))
 
