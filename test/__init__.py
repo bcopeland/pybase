@@ -90,3 +90,7 @@ def test_get_range():
     expected = [ ('00001', d), ('00002', d2) ]
     x = person.get_range('00001', '00003')
     eq_(list(x), expected)
+    person.remove('00001')
+    person.remove('00002')
+    person.remove('00004')
+    
