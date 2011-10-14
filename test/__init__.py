@@ -21,7 +21,7 @@ test_keys=16
 def setup():
     global hbase_conn, person
 
-    hbase_conn = connect_thread_local(['localhost:9190'])
+    hbase_conn = connect_thread_local(['localhost:9090'])
     person = HTable(hbase_conn, 'pybase-test')
 
     for i in range(0, test_keys):
