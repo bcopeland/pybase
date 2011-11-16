@@ -103,15 +103,15 @@ class HTable(object):
 
 
     def get_range(self, start='', finish='', columns=None,
-        include_timestamp=False):
+        include_timestamp=False, buffer_size=1024):
         """
         Get a generator over rows in a specified key range.
         """
-        buffer_size = 1024
         scanner = None
 
         tscan = TScan(startRow=start, stopRow=finish,
-            columns=self._columns_to_tcolumn(columns, None))
+            columns=self._columns_to_tcolumn(columns, None),
+            caching=buffer_size)
 
         scanner = self._client.openScanner(self._tableName, tscan)
 
