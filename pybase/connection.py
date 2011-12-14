@@ -2,6 +2,7 @@
 from exceptions import Exception
 import socket
 import threading
+import random
 from Queue import Queue
 
 try:
@@ -78,15 +79,13 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None, hba
         servers = [DEFAULT_SERVER]
     return SingleConnection(servers, framed_transport, timeout, logins, hbase)
 
-def connect_thread_local(servers=None, round_robin=True, framed_transport=False, timeout=None, logins=None, hbase=True):
+def connect_thread_local(servers=None, framed_transport=False, timeout=None, logins=None, hbase=True):
     """
-    Constructs an HBase connection for each thread. By default, it attempts
-    to connect in a round_robin (load-balancing) fashion. Turn it off by
-    setting round_robin=False
+    Constructs an HBase connection for each thread.  It will randomly
+    permute the list of servers in order to balance connections.
 
-    If the connection fails, it will attempt to connect to each server on the
-    list in turn until one succeeds. If it is unable to find an active server,
-    it will throw a NoServerAvailable exception.
+    If it is unable to find an active server, it will throw a
+    NoServerAvailable exception.
 
     Parameters
     ----------
@@ -94,9 +93,6 @@ def connect_thread_local(servers=None, round_robin=True, framed_transport=False,
               List of HBase servers with format: "hostname:port"
 
               Default: ['localhost:9160']
-    round_robin : bool
-              Balance the connections. Set to False to connect to each server
-              in turn.
     framed_transport: bool
               If True, use a TFramedTransport instead of a TBufferedTransport
     timeout: float
@@ -115,7 +111,7 @@ def connect_thread_local(servers=None, round_robin=True, framed_transport=False,
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    return ThreadLocalConnection(servers, round_robin, framed_transport, timeout, logins, hbase)
+    return ThreadLocalConnection(servers, framed_transport, timeout, logins, hbase)
 
 class SingleConnection(object):
     def __init__(self, servers, framed_transport, timeout, logins, hbase):
@@ -163,13 +159,13 @@ class SingleConnection(object):
         raise NoServerAvailable()
 
 class ThreadLocalConnection(object):
-    def __init__(self, servers, round_robin, framed_transport, timeout, logins, hbase):
+    def __init__(self, servers, framed_transport, timeout, logins, hbase):
         self._servers = servers
+        random.shuffle(self._servers)
         self._queue = Queue()
         for i in xrange(len(servers)):
             self._queue.put(i)
         self._local = threading.local()
-        self._round_robin = round_robin
         self._framed_transport = framed_transport
         self._timeout = timeout
         self._logins = logins if logins is not None else {}
@@ -190,7 +186,7 @@ class ThreadLocalConnection(object):
                 self._local.transport.close()
                 self._local.client = None
 
-                servers = self._round_robin_servers()
+                servers = self._rotate_servers()
 
                 for server in servers:
                     try:
@@ -209,17 +205,16 @@ class ThreadLocalConnection(object):
         self._local.client = None
 
 
-    def _round_robin_servers(self):
+    def _rotate_servers(self):
         servers = self._servers
-        if self._round_robin:
-            i = self._queue.get()
-            self._queue.put(i)
-            servers = servers[i:]+servers[:i]
+        i = self._queue.get()
+        self._queue.put(i)
+        servers = servers[i:]+servers[:i]
 
         return servers
 
     def _find_server(self):
-        servers = self._round_robin_servers()
+        servers = self._rotate_servers()
 
         for server in servers:
             try:
