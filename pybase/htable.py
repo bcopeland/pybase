@@ -120,7 +120,7 @@ class HTable(object):
 
         conn = None
         try:
-            conn = self._client.get_conn()
+            conn = self._client.get()
             scanner = conn.openScanner(self._tableName, tscan)
 
             while True:
