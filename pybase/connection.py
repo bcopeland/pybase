@@ -39,7 +39,8 @@ def create_client_transport(server, framed_transport, timeout):
 
     return client, transport
 
-def connect(servers=None, framed_transport=False, timeout=None):
+def connect(servers=None, framed_transport=False, timeout=None,
+            use_threadlocal=True):
     """
     Constructs a single HBase connection. Initially connects to the first
     server on the list.
@@ -68,37 +69,13 @@ def connect(servers=None, framed_transport=False, timeout=None):
 
     if servers is None:
         servers = [DEFAULT_SERVER]
+    if use_threadlocal:
+        return ThreadLocalConnection(servers, framed_transport, timeout)
+
     return SingleConnection(servers, framed_transport, timeout)
 
-def connect_thread_local(servers=None, framed_transport=False, timeout=None):
-    """
-    Constructs an HBase connection for each thread.  It will randomly
-    permute the list of servers in order to balance connections.
-
-    If it is unable to find an active server, it will throw a
-    NoServerAvailable exception.
-
-    Parameters
-    ----------
-    servers : [server]
-              List of HBase servers with format: "hostname:port"
-
-              Default: ['localhost:9160']
-    framed_transport: bool
-              If True, use a TFramedTransport instead of a TBufferedTransport
-    timeout: float
-              Timeout in seconds (e.g. 0.5 for half a second)
-
-              Default: None (it will stall forever)
-
-    Returns
-    -------
-    HBase client
-    """
-
-    if servers is None:
-        servers = [DEFAULT_SERVER]
-    return ThreadLocalConnection(servers, framed_transport, timeout)
+def connect_thread_local(*args, **kwargs):
+    return connect(*args, **kwargs)
 
 class SingleConnection(object):
     def __init__(self, servers, framed_transport, timeout):
