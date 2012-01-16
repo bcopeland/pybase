@@ -24,7 +24,7 @@ DEFAULT_SERVER = 'localhost:9090'
 class NoServerAvailable(Exception):
     pass
 
-def create_client_transport(server, framed_transport, timeout, logins):
+def create_client_transport(server, framed_transport, timeout):
     host, port = server.split(":")
     socket = TSocket.TSocket(host, int(port))
     if timeout is not None:
@@ -37,14 +37,9 @@ def create_client_transport(server, framed_transport, timeout, logins):
     client = THBaseService.Client(protocol)
     transport.open()
 
-    if logins is not None:
-        for keyspace, credentials in logins.iteritems():
-            request = AuthenticationRequest(credentials=credentials)
-            client.login(keyspace, request)
-
     return client, transport
 
-def connect(servers=None, framed_transport=False, timeout=None, logins=None):
+def connect(servers=None, framed_transport=False, timeout=None):
     """
     Constructs a single HBase connection. Initially connects to the first
     server on the list.
@@ -65,10 +60,6 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None):
               Timeout in seconds (e.g. 0.5)
 
               Default: None (it will stall forever)
-    logins : dict
-              Dictionary of Keyspaces and Credentials
-
-              Example: {'Keyspace1' : {'username':'jsmith', 'password':'havebadpass'}}
 
     Returns
     -------
@@ -77,9 +68,9 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None):
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    return SingleConnection(servers, framed_transport, timeout, logins)
+    return SingleConnection(servers, framed_transport, timeout)
 
-def connect_thread_local(servers=None, framed_transport=False, timeout=None, logins=None):
+def connect_thread_local(servers=None, framed_transport=False, timeout=None):
     """
     Constructs an HBase connection for each thread.  It will randomly
     permute the list of servers in order to balance connections.
@@ -99,10 +90,6 @@ def connect_thread_local(servers=None, framed_transport=False, timeout=None, log
               Timeout in seconds (e.g. 0.5 for half a second)
 
               Default: None (it will stall forever)
-    logins : dict
-              Dictionary of Keyspaces and Credentials
-
-              Example: {'Keyspace1' : {'username':'jsmith', 'password':'havebadpass'}}
 
     Returns
     -------
@@ -111,18 +98,14 @@ def connect_thread_local(servers=None, framed_transport=False, timeout=None, log
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    return ThreadLocalConnection(servers, framed_transport, timeout, logins)
+    return ThreadLocalConnection(servers, framed_transport, timeout)
 
 class SingleConnection(object):
-    def __init__(self, servers, framed_transport, timeout, logins):
+    def __init__(self, servers, framed_transport, timeout):
         self._servers = servers
         self._client = None
         self._framed_transport = framed_transport
         self._timeout = timeout
-        self._logins = logins if logins is not None else {}
-
-    def login(self, keyspace, credentials):
-        self._logins[keyspace] = credentials
 
     def __getattr__(self, attr):
         def client_call(*args, **kwargs):
@@ -137,7 +120,7 @@ class SingleConnection(object):
 
                 for server in self._servers:
                     try:
-                        self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
+                        self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout)
                         return getattr(self._client, attr)(*args, **kwargs)
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
@@ -150,7 +133,7 @@ class SingleConnection(object):
     def _find_server(self):
         for server in self._servers:
             try:
-                self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
+                self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout)
                 return
             except (Thrift.TException, socket.timeout, socket.error), exc:
                 continue
@@ -158,7 +141,7 @@ class SingleConnection(object):
         raise NoServerAvailable()
 
 class ThreadLocalConnection(object):
-    def __init__(self, servers, framed_transport, timeout, logins):
+    def __init__(self, servers, framed_transport, timeout):
         self._servers = servers
         random.shuffle(self._servers)
         self._queue = Queue()
@@ -167,10 +150,6 @@ class ThreadLocalConnection(object):
         self._local = threading.local()
         self._framed_transport = framed_transport
         self._timeout = timeout
-        self._logins = logins if logins is not None else {}
-
-    def login(self, keyspace, credentials):
-        self._logins[keyspace] = credentials
 
     def __getattr__(self, attr):
         def client_call(*args, **kwargs):
@@ -188,7 +167,7 @@ class ThreadLocalConnection(object):
 
                 for server in servers:
                     try:
-                        self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
+                        self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout)
                         return getattr(self._local.client, attr)(*args, **kwargs)
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
@@ -216,7 +195,7 @@ class ThreadLocalConnection(object):
 
         for server in servers:
             try:
-                self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
+                self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout)
                 return
             except (Thrift.TException, socket.timeout, socket.error), exc:
                 print "cannot contact %s" % server
