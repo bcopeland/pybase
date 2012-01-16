@@ -51,7 +51,7 @@ class Connection(THBaseService.Client):
 
 import pool
 
-def connect(servers=None, framed_transport=False, timeout=None,
+def connect(servers=None, framed_transport=False, timeout=0.5,
             use_threadlocal=True):
     """
     Constructs a single HBase connection. Initially connects to the first
