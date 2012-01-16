@@ -79,7 +79,7 @@ class ConnectionPool(object):
         setattr(self, attr, callup)
         return getattr(self, attr)
 
-class ConnectionWrapper(connection.ThreadLocalConnection):
+class ConnectionWrapper(connection.Connection):
     """
     A wrapper class for :class:`connection.Connection`s that adds pooling
     functionality.

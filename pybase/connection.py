@@ -69,55 +69,12 @@ def connect(servers=None, framed_transport=False, timeout=None,
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    if use_threadlocal:
-        return ThreadLocalConnection(servers, framed_transport, timeout)
-
-    return SingleConnection(servers, framed_transport, timeout)
+    return Connection(servers, framed_transport, timeout)
 
 def connect_thread_local(*args, **kwargs):
     return connect(*args, **kwargs)
 
-class SingleConnection(object):
-    def __init__(self, servers, framed_transport, timeout):
-        self._servers = servers
-        self._client = None
-        self._framed_transport = framed_transport
-        self._timeout = timeout
-
-    def __getattr__(self, attr):
-        def client_call(*args, **kwargs):
-            if self._client is None:
-                self._find_server()
-            try:
-                return getattr(self._client, attr)(*args, **kwargs)
-            except (Thrift.TException, socket.timeout, socket.error), exc:
-                # Connection error, try to connect to all the servers
-                self._transport.close()
-                self._client = None
-
-                for server in self._servers:
-                    try:
-                        self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout)
-                        return getattr(self._client, attr)(*args, **kwargs)
-                    except (Thrift.TException, socket.timeout, socket.error), exc:
-                        continue
-                self._client = None
-                raise
-
-        setattr(self, attr, client_call)
-        return getattr(self, attr)
-
-    def _find_server(self):
-        for server in self._servers:
-            try:
-                self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout)
-                return
-            except (Thrift.TException, socket.timeout, socket.error), exc:
-                continue
-        self._client = None
-        raise NoServerAvailable()
-
-class ThreadLocalConnection(object):
+class Connection(object):
     def __init__(self, servers, framed_transport, timeout):
         self._servers = servers
         random.shuffle(self._servers)
