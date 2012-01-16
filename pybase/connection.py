@@ -125,12 +125,14 @@ class ThreadLocalConnection(object):
         for i in xrange(len(servers)):
             self._queue.put(i)
         self._local = threading.local()
+        self._local.client = None
         self._framed_transport = framed_transport
         self._timeout = timeout
 
     def __getattr__(self, attr):
+        print "tlc getattr %s" % attr
         def client_call(*args, **kwargs):
-            if getattr(self._local, 'client', None) is None:
+            if self._local.client is None:
                 self._find_server()
 
             try:
@@ -155,8 +157,9 @@ class ThreadLocalConnection(object):
         return getattr(self, attr)
     
     def close(self):
-        self._local.transport.close()
-        self._local.client = None
+        if self._local.client:
+            self._local.transport.close()
+            self._local.client = None
 
 
     def _rotate_servers(self):

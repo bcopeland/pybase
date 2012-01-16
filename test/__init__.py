@@ -21,14 +21,14 @@ test_keys=16
 def setup():
     global hbase_conn, person
 
-    hbase_conn = connect_thread_local(['localhost:9090'])
+    hbase_conn = ConnectionPool(['localhost:9090'])
     person = HTable(hbase_conn, 'pybase-test')
 
     for i in range(0, test_keys):
         person.remove('%.5d' % i)
 
 def teardown():
-    hbase_conn.close()
+    pass
 
 def test_insert():
     d = {'person:name': 'Joe User'}
