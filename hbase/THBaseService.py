@@ -15,7 +15,7 @@ except:
   fastbinary = None
 
 
-class Iface:
+class Iface(object):
   def exists(self, table, get):
     """
     Test for the existence of columns in the table, as specified in the TGet.
