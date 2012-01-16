@@ -64,20 +64,19 @@ class ConnectionPool(object):
     def return_conn(self, conn):
         conn.close()
 
-    def __getattr__(self, attr):
-        """ temporarily chain pool.xyz -> connectionwrapper.xyz() ->
-            connection.xyz()
+    def execute(self, f, *args, **kwargs):
         """
-        def callup(*args, **kwargs):
+        Get a connection from the pool, execute `f` on it with
+        `*args` and `**kwargs`, return the connection to the
+        pool, and return the result of `f`.
+        """
+        conn = None
+        try:
             conn = self.get_conn()
-            try:
-                result = getattr(conn, attr)(*args, **kwargs)
-                return result
-            finally:
-                conn.return_to_pool()
-
-        setattr(self, attr, callup)
-        return getattr(self, attr)
+            return getattr(conn, f)(*args, **kwargs)
+        finally:
+            if conn:
+                self.return_conn(conn)
 
 class ConnectionWrapper(connection.Connection):
     """

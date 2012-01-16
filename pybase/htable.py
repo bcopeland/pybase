@@ -52,7 +52,7 @@ class HTable(object):
             ex. put_values = {'person:name':'Antonio'}
         """
 
-        return self._client.put(self._tableName, TPut(row=key,
+        return self._client.execute('put', self._tableName, TPut(row=key,
             columnValues=self._column_dict_to_tcolumnvalues(put_values),
             timestamp=timestamp))
 
@@ -60,8 +60,8 @@ class HTable(object):
             put_values, timestamp=None):
 
         family, qualifier = check_column.split(':', 1)
-        return self._client.checkAndPut(self._tableName, check_key, family,
-            qualifier, check_value, TPut(row=check_key,
+        return self._client.execute('checkAndPut', self._tableName,
+            check_key, family, qualifier, check_value, TPut(row=check_key,
             columnValues=self._column_dict_to_tcolumnvalues(put_values),
             timestamp=timestamp))
 
@@ -93,7 +93,7 @@ class HTable(object):
         The return result is of the form:
         ``{column_name: column_value}``, or None if no matches.
         """
-        response = self._client.get(self._tableName,
+        response = self._client.execute('get', self._tableName,
             TGet(row=key, columns=self._columns_to_tcolumn(columns, timestamp),
                  timestamp=timestamp))
 
@@ -106,6 +106,11 @@ class HTable(object):
         include_timestamp=False, buffer_size=1024):
         """
         Get a generator over rows in a specified key range.
+
+        For scanners we need to use the same connection the whole
+        time.  It might make sense to remember where we last pulled
+        results, so we can continue (by opening a new scanner) on
+        another server if need be.
         """
         scanner = None
 
@@ -113,15 +118,21 @@ class HTable(object):
             columns=self._columns_to_tcolumn(columns, None),
             caching=buffer_size)
 
-        scanner = self._client.openScanner(self._tableName, tscan)
+        conn = None
+        try:
+            conn = self._client.get_conn()
+            scanner = conn.openScanner(self._tableName, tscan)
 
-        while True:
-            ret = self._client.getScannerRows(scanner, buffer_size)
-            if not ret:
-                break
-            for item in ret:
-                yield self._hrow_to_tuple(item, include_timestamp)
-        self._client.closeScanner(scanner)
+            while True:
+                ret = conn.getScannerRows(scanner, buffer_size)
+                if not ret:
+                    break
+                for item in ret:
+                    yield self._hrow_to_tuple(item, include_timestamp)
+            conn.closeScanner(scanner)
+        finally:
+            if conn:
+                conn.return_to_pool()
 
     def remove(self, key, columns=None, timestamp=None):
         """
@@ -130,7 +141,7 @@ class HTable(object):
         Supply a list of column names to delete parts of a row.
         Otherwise, the whole row will be deleted.
         """
-        self._client.deleteSingle(self._tableName,
+        self._client.execute('deleteSingle', self._tableName,
             TDelete(row=key,
                     columns=self._columns_to_tcolumn(columns, timestamp),
                     timestamp=timestamp,
@@ -139,7 +150,8 @@ class HTable(object):
     def check_and_remove(self, check_key, check_column, check_value,
             columns=None, timestamp=None):
         family, qualifier = check_column.split(':', 1)
-        return self._client.checkAndDelete(self._tableName, check_key, family,
+        return self._client.execute('checkAndDelete', self._tableName,
+            check_key, family,
             qualifier, check_value, TDelete(row=check_key,
             columns=self._columns_to_tcolumn(columns, timestamp),
             timestamp=timestamp,
