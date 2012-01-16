@@ -24,7 +24,7 @@ DEFAULT_SERVER = 'localhost:9090'
 class NoServerAvailable(Exception):
     pass
 
-def create_client_transport(server, framed_transport, timeout, logins, hbase):
+def create_client_transport(server, framed_transport, timeout, logins):
     host, port = server.split(":")
     socket = TSocket.TSocket(host, int(port))
     if timeout is not None:
@@ -44,7 +44,7 @@ def create_client_transport(server, framed_transport, timeout, logins, hbase):
 
     return client, transport
 
-def connect(servers=None, framed_transport=False, timeout=None, logins=None, hbase=True):
+def connect(servers=None, framed_transport=False, timeout=None, logins=None):
     """
     Constructs a single HBase connection. Initially connects to the first
     server on the list.
@@ -77,9 +77,9 @@ def connect(servers=None, framed_transport=False, timeout=None, logins=None, hba
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    return SingleConnection(servers, framed_transport, timeout, logins, hbase)
+    return SingleConnection(servers, framed_transport, timeout, logins)
 
-def connect_thread_local(servers=None, framed_transport=False, timeout=None, logins=None, hbase=True):
+def connect_thread_local(servers=None, framed_transport=False, timeout=None, logins=None):
     """
     Constructs an HBase connection for each thread.  It will randomly
     permute the list of servers in order to balance connections.
@@ -111,16 +111,15 @@ def connect_thread_local(servers=None, framed_transport=False, timeout=None, log
 
     if servers is None:
         servers = [DEFAULT_SERVER]
-    return ThreadLocalConnection(servers, framed_transport, timeout, logins, hbase)
+    return ThreadLocalConnection(servers, framed_transport, timeout, logins)
 
 class SingleConnection(object):
-    def __init__(self, servers, framed_transport, timeout, logins, hbase):
+    def __init__(self, servers, framed_transport, timeout, logins):
         self._servers = servers
         self._client = None
         self._framed_transport = framed_transport
         self._timeout = timeout
         self._logins = logins if logins is not None else {}
-        self._hbase = hbase
 
     def login(self, keyspace, credentials):
         self._logins[keyspace] = credentials
@@ -138,7 +137,7 @@ class SingleConnection(object):
 
                 for server in self._servers:
                     try:
-                        self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins, self._hbase)
+                        self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
                         return getattr(self._client, attr)(*args, **kwargs)
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
@@ -151,7 +150,7 @@ class SingleConnection(object):
     def _find_server(self):
         for server in self._servers:
             try:
-                self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins, self._hbase)
+                self._client, self._transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
                 return
             except (Thrift.TException, socket.timeout, socket.error), exc:
                 continue
@@ -159,7 +158,7 @@ class SingleConnection(object):
         raise NoServerAvailable()
 
 class ThreadLocalConnection(object):
-    def __init__(self, servers, framed_transport, timeout, logins, hbase):
+    def __init__(self, servers, framed_transport, timeout, logins):
         self._servers = servers
         random.shuffle(self._servers)
         self._queue = Queue()
@@ -169,7 +168,6 @@ class ThreadLocalConnection(object):
         self._framed_transport = framed_transport
         self._timeout = timeout
         self._logins = logins if logins is not None else {}
-        self._hbase = hbase
 
     def login(self, keyspace, credentials):
         self._logins[keyspace] = credentials
@@ -190,7 +188,7 @@ class ThreadLocalConnection(object):
 
                 for server in servers:
                     try:
-                        self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins, self._hbase)
+                        self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
                         return getattr(self._local.client, attr)(*args, **kwargs)
                     except (Thrift.TException, socket.timeout, socket.error), exc:
                         continue
@@ -218,7 +216,7 @@ class ThreadLocalConnection(object):
 
         for server in servers:
             try:
-                self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins, self._hbase)
+                self._local.client, self._local.transport = create_client_transport(server, self._framed_transport, self._timeout, self._logins)
                 return
             except (Thrift.TException, socket.timeout, socket.error), exc:
                 print "cannot contact %s" % server
