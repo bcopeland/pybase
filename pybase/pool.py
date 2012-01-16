@@ -574,6 +574,13 @@ class ConnectionPool(object):
         """ Returns the number of connections currently checked out from the pool. """
         return self._current_conns - self.checkedin()
 
+    def close(self):
+        """
+        Just for backwards-compatability with clients using
+        connect{_thread_local}.
+        """
+        pass
+
     def add_listener(self, listener):
         """
         Add a :class:`PoolListener`-like object to this pool.
