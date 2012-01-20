@@ -129,9 +129,12 @@ class HTable(object):
                     break
                 for item in ret:
                     yield self._hrow_to_tuple(item, include_timestamp)
-            conn.closeScanner(scanner)
         finally:
             if conn:
+                try:
+                    conn.closeScanner(scanner)
+                except:
+                    pass
                 conn.return_to_pool()
 
     def remove(self, key, columns=None, timestamp=None):
