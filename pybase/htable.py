@@ -103,7 +103,7 @@ class HTable(object):
 
 
     def get_range(self, start='', finish='', columns=None,
-        include_timestamp=False, buffer_size=1024):
+        include_timestamp=False, buffer_size=50):
         """
         Get a generator over rows in a specified key range.
 
