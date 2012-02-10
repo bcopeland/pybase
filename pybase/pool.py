@@ -58,6 +58,10 @@ class ConnectionWrapper(Connection):
         self._should_fail = False
         self._original_meth = self.get
 
+    def __repr__(self):
+        return "{'transport-id': '%s', 'server': '%s'}" % (
+            id(self.transport), self.server)
+
     def return_to_pool(self):
         """
         Returns this to the pool.
@@ -103,6 +107,7 @@ class ConnectionWrapper(Connection):
 
         """
         self.transport = new_conn_wrapper.transport
+        self.server = new_conn_wrapper.server
         self._iprot = new_conn_wrapper._iprot
         self._oprot = new_conn_wrapper._oprot
         self.info = new_conn_wrapper.info
